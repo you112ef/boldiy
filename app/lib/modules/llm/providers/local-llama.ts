@@ -1,4 +1,4 @@
-import { OpenAIStream } from 'ai/openai'; // Try importing from 'ai/openai'
+import { OpenAIStream } from 'ai'; // Reverting to this, though also known to fail with current name
 import type { ChatStreamCallbacks } from '@ai-sdk/provider'; // Adjust if this type is different
 import { BaseProvider } from '../base-provider'; // Import BaseProvider
 import {
