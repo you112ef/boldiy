@@ -54,9 +54,13 @@ interface ChatBoxProps {
   enhancePrompt?: (() => void) | undefined;
   chatMode?: 'discuss' | 'build';
   setChatMode?: (mode: 'discuss' | 'build') => void;
+  customSystemPrompt?: string; // Added
+  setCustomSystemPrompt?: (value: string) => void; // Added
 }
 
 export const ChatBox: React.FC<ChatBoxProps> = (props) => {
+  const [isCustomPromptOpen, setIsCustomPromptOpen] = React.useState(false); // Added state for textarea toggle
+
   return (
     <div
       className={classNames(
@@ -143,6 +147,18 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           />
         )}
       </ClientOnly>
+      {/* Custom System Prompt Textarea */}
+      {isCustomPromptOpen && (
+        <div className="mt-2 mb-2"> {/* Added mb-2 for spacing */}
+          <textarea
+            value={props.customSystemPrompt}
+            onChange={(e) => props.setCustomSystemPrompt?.(e.target.value)}
+            placeholder="Enter custom system prompt (optional). This will override or augment the default system behavior."
+            className="w-full p-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+            rows={3}
+          />
+        </div>
+      )}
       <div
         className={classNames('relative shadow-xs border border-bolt-elements-borderColor backdrop-blur rounded-lg')}
       >
@@ -239,6 +255,18 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           <div className="flex gap-1 items-center">
             <IconButton title="Upload file" className="transition-all" onClick={() => props.handleFileUpload()}>
               <div className="i-ph:paperclip text-xl"></div>
+            </IconButton>
+            {/* Custom System Prompt Toggle Button */}
+            <IconButton
+              title="Custom System Prompt"
+              className={classNames(
+                'transition-all flex items-center gap-1',
+                isCustomPromptOpen ? '!bg-bolt-elements-item-backgroundAccent !text-bolt-elements-item-contentAccent' : 'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault'
+              )}
+              onClick={() => setIsCustomPromptOpen(!isCustomPromptOpen)}
+            >
+              <div className="i-ph:scroll-text text-xl" />
+              {isCustomPromptOpen ? <span className="text-xs">System Prompt</span> : <span />}
             </IconButton>
             <IconButton
               title="Enhance prompt"

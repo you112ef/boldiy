@@ -30,6 +30,8 @@ import { SupabaseChatAlert } from '~/components/chat/SupabaseAlert';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { useStore } from '@nanostores/react';
 import { StickToBottom, useStickToBottomContext } from '~/lib/hooks';
+import { useConnectionStatus } from '~/lib/hooks/useConnectionStatus'; // Added
+import { toast } from 'react-toastify'; // Added
 import { ChatBox } from './ChatBox';
 
 const TEXTAREA_MIN_HEIGHT = 76;
@@ -73,6 +75,8 @@ interface BaseChatProps {
   chatMode?: 'discuss' | 'build';
   setChatMode?: (mode: 'discuss' | 'build') => void;
   append?: (message: Message) => void;
+  customSystemPrompt?: string; // Added
+  setCustomSystemPrompt?: (value: string) => void; // Added
 }
 
 export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
@@ -114,6 +118,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       chatMode,
       setChatMode,
       append,
+      customSystemPrompt, // Consumed
+      setCustomSystemPrompt, // Consumed
     },
     ref,
   ) => {
@@ -128,12 +134,72 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
     const expoUrl = useStore(expoUrlAtom);
     const [qrModalOpen, setQrModalOpen] = useState(false);
+    const { currentIssue: connectionIssue } = useConnectionStatus(); // Added
+    const [effectiveProviderList, setEffectiveProviderList] = useState<ProviderInfo[]>(providerList || PROVIDER_LIST as ProviderInfo[]); // Added
+    const [effectiveModelList, setEffectiveModelList] = useState<ModelInfo[]>(modelList); // Added
+    const [showOfflineLlamaAlert, setShowOfflineLlamaAlert] = useState(false); // Added for this subtask
 
     useEffect(() => {
       if (expoUrl) {
         setQrModalOpen(true);
       }
     }, [expoUrl]);
+
+    useEffect(() => {
+      const isOffline = connectionIssue === 'disconnected';
+      const originalProviders = providerList || (PROVIDER_LIST as ProviderInfo[]);
+      const originalModels = modelList; // This is the full model list state from fetch
+
+      if (isOffline) {
+        const offlineProviders = originalProviders.filter(p => p.isLocal);
+        setEffectiveProviderList(offlineProviders);
+
+        if (offlineProviders.length > 0) {
+          const offlineProviderIds = new Set(offlineProviders.map(p => p.id));
+          // Filter the *original* full model list
+          setEffectiveModelList(originalModels.filter(m => offlineProviderIds.has(m.provider)));
+
+          // Auto-switch logic
+          const currentProviderIsLocal = provider && originalProviders.find(p => p.id === provider.id)?.isLocal;
+          if (!currentProviderIsLocal && setProvider && setModel) {
+            const localLlama = offlineProviders.find(p => p.id === 'local-llama');
+            if (localLlama) {
+              // Check against the *original* full model list for default model
+              const defaultLocalModel = originalModels.find(m => m.provider === localLlama.id && m.is_default);
+              if (defaultLocalModel) {
+                setProvider(localLlama);
+                setModel(defaultLocalModel.id);
+                toast.info('Offline: Switched to Local LLaMA model.');
+                setShowOfflineLlamaAlert(true); // Show alert after switching
+              } else if (localLlama.models && localLlama.models.length > 0) {
+                setProvider(localLlama);
+                setModel(localLlama.models[0].id);
+                toast.info('Offline: Switched to Local LLaMA model (first available).');
+                setShowOfflineLlamaAlert(true); // Show alert after switching
+              } else {
+                 setShowOfflineLlamaAlert(false); // No local LLaMA model found to switch to
+              }
+            } else {
+              setShowOfflineLlamaAlert(false); // Local LLaMA provider not found
+            }
+          } else if (currentProviderIsLocal && provider?.id === 'local-llama') {
+            setShowOfflineLlamaAlert(true); // Already on local-llama and offline
+          } else {
+            setShowOfflineLlamaAlert(false); // Offline, but on a different local provider
+          }
+        } else {
+          setEffectiveModelList([]);
+          toast.error('Offline: No local models available.');
+          setShowOfflineLlamaAlert(false);
+        }
+      } else {
+        // Online
+        setEffectiveProviderList(originalProviders);
+        setEffectiveModelList(originalModels);
+        setShowOfflineLlamaAlert(false); // Hide alert when online
+      }
+    }, [connectionIssue, providerList, modelList, provider, setProvider, setModel]);
+
 
     useEffect(() => {
       if (data) {
@@ -402,6 +468,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       }}
                     />
                   )}
+                  {showOfflineLlamaAlert && (
+                    <ChatAlert
+                        alert={{
+                            id: 'offline-llama-alert',
+                            type: 'info',
+                            title: 'Offline Mode',
+                            message: 'You are currently offline. Responses are provided by your local LLaMA model.',
+                            showClearButton: true,
+                        }}
+                        clearAlert={() => setShowOfflineLlamaAlert(false)}
+                    />
+                  )}
                 </div>
                 <ScrollToBottom />
                 {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
@@ -410,10 +488,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   setIsModelSettingsCollapsed={setIsModelSettingsCollapsed}
                   provider={provider}
                   setProvider={setProvider}
-                  providerList={providerList || (PROVIDER_LIST as ProviderInfo[])}
+                  providerList={effectiveProviderList} // Changed
                   model={model}
                   setModel={setModel}
-                  modelList={modelList}
+                  modelList={effectiveModelList} // Changed
                   apiKeys={apiKeys}
                   isModelLoading={isModelLoading}
                   onApiKeysChange={onApiKeysChange}
@@ -442,6 +520,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   handleFileUpload={handleFileUpload}
                   chatMode={chatMode}
                   setChatMode={setChatMode}
+                  customSystemPrompt={customSystemPrompt} // Pass down
+                  setCustomSystemPrompt={setCustomSystemPrompt} // Pass down
                 />
               </div>
             </StickToBottom>

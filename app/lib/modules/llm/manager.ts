@@ -34,16 +34,39 @@ export class LLMManager {
        * const providerModules = import.meta.glob('./providers/*.ts', { eager: true });
        */
 
-      // Look for exported classes that extend BaseProvider
+      // Look for exported classes that extend BaseProvider or direct instances
       for (const exportedItem of Object.values(providers)) {
-        if (typeof exportedItem === 'function' && exportedItem.prototype instanceof BaseProvider) {
-          const provider = new exportedItem();
-
+        // Check if the exportedItem itself is a provider instance
+        if (exportedItem instanceof BaseProvider) {
+          const provider = exportedItem; // It's already an instance
           try {
             this.registerProvider(provider);
           } catch (error: any) {
-            logger.warn('Failed To Register Provider: ', provider.name, 'error:', error.message);
+            logger.warn('Failed To Register Provider (instance): ', provider.config.name, 'error:', error.message);
           }
+        }
+        // Original check for classes
+        else if (typeof exportedItem === 'function' && exportedItem.prototype instanceof BaseProvider) {
+          const ProviderClass = exportedItem as new () => BaseProvider; // Type assertion
+          const provider = new ProviderClass();
+          try {
+            this.registerProvider(provider);
+          } catch (error: any) {
+            logger.warn('Failed To Register Provider (class): ', provider.config.name, 'error:', error.message);
+          }
+        }
+        // Handle cases where providers might be wrapped in { default: ... } by bundlers/imports
+        // This is common with dynamic imports or how some modules might be structured.
+        else if (typeof exportedItem === 'object' && exportedItem !== null && 'default' in exportedItem) {
+           const potentialProvider = (exportedItem as any).default;
+           if (potentialProvider instanceof BaseProvider) {
+               const provider = potentialProvider;
+               this.registerProvider(provider);
+           } else if (typeof potentialProvider === 'function' && potentialProvider.prototype instanceof BaseProvider) {
+               const ProviderClass = potentialProvider as new () => BaseProvider;
+               const provider = new ProviderClass();
+               this.registerProvider(provider);
+           }
         }
       }
     } catch (error) {

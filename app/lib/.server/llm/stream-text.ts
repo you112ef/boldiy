@@ -38,6 +38,7 @@ export async function streamText(props: {
   summary?: string;
   messageSliceId?: number;
   chatMode?: 'discuss' | 'build';
+  customSystemPrompt?: string; // Added here
 }) {
   const {
     messages,
@@ -51,6 +52,7 @@ export async function streamText(props: {
     contextFiles,
     summary,
     chatMode,
+    customSystemPrompt, // Destructure
   } = props;
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
@@ -115,22 +117,56 @@ export async function streamText(props: {
     `Max tokens for model ${modelDetails.name} is ${dynamicMaxTokens} based on ${modelDetails.maxTokenAllowed} or ${MAX_TOKENS}`,
   );
 
-  let systemPrompt =
-    PromptLibrary.getPropmtFromLibrary(promptId || 'default', {
-      cwd: WORK_DIR,
-      allowedHtmlElements: allowedHTMLElements,
-      modificationTagName: MODIFICATIONS_TAG_NAME,
-      supabase: {
-        isConnected: options?.supabaseConnection?.isConnected || false,
-        hasSelectedProject: options?.supabaseConnection?.hasSelectedProject || false,
-        credentials: options?.supabaseConnection?.credentials || undefined,
-      },
-    }) ?? getSystemPrompt();
+  let systemPromptToUse: string;
 
+  if (customSystemPrompt && customSystemPrompt.trim() !== '') {
+    systemPromptToUse = customSystemPrompt.trim();
+    logger.info(`Using custom system prompt for chatMode: ${chatMode}`);
+  } else if (chatMode === 'build') {
+    systemPromptToUse =
+      PromptLibrary.getPropmtFromLibrary(promptId || 'default', {
+        cwd: WORK_DIR,
+        allowedHtmlElements: allowedHTMLElements,
+        modificationTagName: MODIFICATIONS_TAG_NAME,
+        supabase: {
+          isConnected: options?.supabaseConnection?.isConnected || false,
+          hasSelectedProject: options?.supabaseConnection?.hasSelectedProject || false,
+          credentials: options?.supabaseConnection?.credentials || undefined,
+        },
+      }) ?? getSystemPrompt();
+    logger.info('Using default build system prompt.');
+  } else { // chatMode === 'discuss'
+    systemPromptToUse = discussPrompt();
+    logger.info('Using default discuss system prompt.');
+  }
+
+  // Append context/summary if in 'build' mode and context optimization is on
+  // This will append to the custom prompt as well if one was provided.
   if (chatMode === 'build' && contextFiles && contextOptimization) {
-    const codeContext = createFilesContext(contextFiles, true);
+    const codeContext = createFilesContext(contextFiles, true); // Use contextFiles here
+    systemPromptToUse = `${systemPromptToUse}\n\nCONTEXT BUFFER:\n---\n${codeContext}\n---`;
+    if (summary) {
+      systemPromptToUse = `${systemPromptToUse}\n\nCHAT SUMMARY:\n---\n${props.summary}\n---`;
+    }
+  }
 
-    systemPrompt = `${systemPrompt}
+  // Apply message slicing if summary was part of context building
+  // (This logic was originally inside the context/summary appending block)
+  if (chatMode === 'build' && summary && contextOptimization) {
+    if (props.messageSliceId) {
+      processedMessages = processedMessages.slice(props.messageSliceId);
+    } else {
+      const lastMessage = processedMessages.pop();
+      if (lastMessage) {
+        processedMessages = [lastMessage];
+      }
+    }
+  }
+
+  // if (chatMode === 'build' && contextFiles && contextOptimization) { // This block is now handled above
+  //   const codeContext = createFilesContext(contextFiles, true);
+
+  //   systemPrompt = `${systemPrompt}
 
     Below is the artifact containing the context loaded into context buffer for you to have knowledge of and might need changes to fullfill current user request.
     CONTEXT BUFFER:
@@ -174,19 +210,14 @@ export async function streamText(props: {
     const lockedFilesListString = Array.from(effectiveLockedFilePaths)
       .map((filePath) => `- ${filePath}`)
       .join('\n');
-    systemPrompt = `${systemPrompt}
-
-    IMPORTANT: The following files are locked and MUST NOT be modified in any way. Do not suggest or make any changes to these files. You can proceed with the request but DO NOT make any changes to these files specifically:
-    ${lockedFilesListString}
-    ---
-    `;
+    systemPromptToUse = `${systemPromptToUse}\n\nIMPORTANT: The following files are locked and MUST NOT be modified in any way. Do not suggest or make any changes to these files. You can proceed with the request but DO NOT make any changes to these files specifically:\n    ${lockedFilesListString}\n---`;
   } else {
     console.log('No locked files found from any source for prompt.');
   }
 
   logger.info(`Sending llm call to ${provider.name} with model ${modelDetails.name}`);
 
-  // console.log(systemPrompt, processedMessages);
+  // console.log(systemPromptToUse, processedMessages); // Debug with new variable
 
   return await _streamText({
     model: provider.getModelInstance({
@@ -195,7 +226,7 @@ export async function streamText(props: {
       apiKeys,
       providerSettings,
     }),
-    system: chatMode === 'build' ? systemPrompt : discussPrompt(),
+    system: systemPromptToUse, // Use the determined systemPromptToUse
     maxTokens: dynamicMaxTokens,
     messages: convertToCoreMessages(processedMessages as any),
     ...options,

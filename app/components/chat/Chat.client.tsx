@@ -147,6 +147,7 @@ export const ChatImpl = memo(
     const [animationScope, animate] = useAnimate();
 
     const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
+    const [customSystemPrompt, setCustomSystemPrompt] = useState(''); // Added customSystemPrompt state
 
     const [chatMode, setChatMode] = useState<'discuss' | 'build'>('build');
     const {
@@ -169,6 +170,7 @@ export const ChatImpl = memo(
         files,
         promptId,
         contextOptimization: contextOptimizationEnabled,
+        customSystemPrompt, // Pass customSystemPrompt to API
         chatMode,
         supabase: {
           isConnected: supabaseConn.isConnected,
@@ -569,6 +571,8 @@ export const ChatImpl = memo(
         chatMode={chatMode}
         setChatMode={setChatMode}
         append={append}
+        customSystemPrompt={customSystemPrompt} // Pass to BaseChat
+        setCustomSystemPrompt={setCustomSystemPrompt} // Pass to BaseChat
       />
     );
   },

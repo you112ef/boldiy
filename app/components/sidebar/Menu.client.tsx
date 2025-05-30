@@ -16,26 +16,8 @@ import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
 import { profileStore } from '~/lib/stores/profile';
 
-const menuVariants = {
-  closed: {
-    opacity: 0,
-    visibility: 'hidden',
-    left: '-340px',
-    transition: {
-      duration: 0.2,
-      ease: cubicEasingFn,
-    },
-  },
-  open: {
-    opacity: 1,
-    visibility: 'initial',
-    left: 0,
-    transition: {
-      duration: 0.2,
-      ease: cubicEasingFn,
-    },
-  },
-} satisfies Variants;
+// Static menuVariants removed, will be defined dynamically inside the component
+// const menuVariants = { ... }
 
 type DialogContent =
   | { type: 'delete'; item: ChatHistoryItem }
@@ -69,6 +51,46 @@ export const Menu = () => {
   const menuRef = useRef<HTMLDivElement>(null);
   const [list, setList] = useState<ChatHistoryItem[]>([]);
   const [open, setOpen] = useState(false);
+  const [direction, setDirection] = useState('ltr'); // Added direction state
+
+  useEffect(() => {
+    const dirValue = (document.documentElement.dir || 'ltr') as 'ltr' | 'rtl';
+    setDirection(dirValue);
+
+    const observer = new MutationObserver(() => {
+      setDirection((document.documentElement.dir || 'ltr') as 'ltr' | 'rtl');
+    });
+
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['dir'] });
+    return () => observer.disconnect();
+  }, []); // Empty dependency array means this runs once on mount and cleans up on unmount
+
+  // Dynamic menuVariants based on direction (re-applying the logic from previous RTL task)
+  const menuVariants = {
+    closed: {
+      opacity: 0,
+      x: direction === 'ltr' ? '-100%' : '100%',
+      transition: {
+        duration: 0.2,
+        ease: cubicEasingFn,
+        when: "afterChildren"
+      },
+      transitionEnd: {
+        visibility: 'hidden',
+      }
+    },
+    open: {
+      opacity: 1,
+      x: 0,
+      visibility: 'visible',
+      transition: {
+        duration: 0.2,
+        ease: cubicEasingFn,
+        when: "beforeChildren"
+      },
+    },
+  } satisfies Variants;
+
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const profile = useStore(profileStore);
@@ -329,15 +351,14 @@ export const Menu = () => {
         ref={menuRef}
         initial="closed"
         animate={open ? 'open' : 'closed'}
-        variants={menuVariants}
-        // Apply responsive width. Original 'w-[340px]' is now sm:w-[340px]. Base is w-full.
-        // Base text size is text-xs, sm:text-sm
+        variants={menuVariants} // Now using the dynamic variants
+        // className already includes responsive width and LTR/RTL positioning classes.
+        // The inline style style={{ width: '340px' }} was removed in the original RTL fix and should remain removed.
         className={classNames(
           'flex selection-accent flex-col side-menu fixed top-0 h-full',
           'bg-white dark:bg-gray-950 ltr:border-r rtl:border-l border-gray-100 dark:border-gray-800/50',
           'shadow-sm text-xs sm:text-sm w-full sm:w-[340px]',
           isSettingsOpen ? 'z-40' : 'z-sidebar',
-          // RTL positioning already handled by a previous subtask using 'direction' state
           direction === 'ltr' ? 'left-0' : 'right-0'
         )}
       >

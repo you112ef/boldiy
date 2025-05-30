@@ -30,7 +30,7 @@ export interface Shortcuts {
 }
 
 export const URL_CONFIGURABLE_PROVIDERS = ['Ollama', 'LMStudio', 'OpenAILike'];
-export const LOCAL_PROVIDERS = ['OpenAILike', 'LMStudio', 'Ollama'];
+export const LOCAL_PROVIDERS = ['OpenAILike', 'LMStudio', 'Ollama', 'Local LLaMA']; // Added 'Local LLaMA'
 
 export type ProviderSetting = Record<string, IProviderConfig>;
 
@@ -71,8 +71,7 @@ const getInitialProviderSettings = (): ProviderSetting => {
     initialSettings[provider.name] = {
       ...provider,
       settings: {
-        // Local providers should be disabled by default
-        enabled: !LOCAL_PROVIDERS.includes(provider.name),
+        enabled: LOCAL_PROVIDERS.includes(provider.name), // Enable if listed in LOCAL_PROVIDERS
       },
     };
   });
