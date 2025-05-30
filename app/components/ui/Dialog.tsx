@@ -6,6 +6,10 @@ import { cubicEasingFn } from '~/utils/easings';
 import { IconButton } from './IconButton';
 import { Button } from './Button';
 import { FixedSizeList } from 'react-window';
+// Add classNames if it's not already imported, though it seems to be used below.
+// import { classNames } from '~/utils/classNames';
+
+type Direction = 'ltr' | 'rtl'; // Add Direction type
 import { Checkbox } from './Checkbox';
 import { Label } from './Label';
 
@@ -22,7 +26,7 @@ export const DialogButton = memo(({ type, children, onClick, disabled }: DialogB
   return (
     <button
       className={classNames(
-        'inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors',
+        'inline-flex items-center gap-2 px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm rounded-lg transition-colors', // Responsive padding and font
         type === 'primary'
           ? 'bg-purple-500 text-white hover:bg-purple-600 dark:bg-purple-500 dark:hover:bg-purple-600'
           : type === 'secondary'
@@ -40,7 +44,7 @@ export const DialogButton = memo(({ type, children, onClick, disabled }: DialogB
 export const DialogTitle = memo(({ className, children, ...props }: RadixDialog.DialogTitleProps) => {
   return (
     <RadixDialog.Title
-      className={classNames('text-lg font-medium text-bolt-elements-textPrimary flex items-center gap-2', className)}
+      className={classNames('text-base sm:text-lg font-medium text-bolt-elements-textPrimary flex items-center gap-2', className)} // Responsive font size
       {...props}
     >
       {children}
@@ -51,7 +55,7 @@ export const DialogTitle = memo(({ className, children, ...props }: RadixDialog.
 export const DialogDescription = memo(({ className, children, ...props }: RadixDialog.DialogDescriptionProps) => {
   return (
     <RadixDialog.Description
-      className={classNames('text-sm text-bolt-elements-textSecondary mt-1', className)}
+      className={classNames('text-xs sm:text-sm text-bolt-elements-textSecondary mt-1', className)} // Responsive font size
       {...props}
     >
       {children}
@@ -101,6 +105,14 @@ interface DialogProps {
 }
 
 export const Dialog = memo(({ children, className, showCloseButton = true, onClose, onBackdrop }: DialogProps) => {
+  const [direction, setDirection] = useState<Direction>('ltr');
+
+  useEffect(() => {
+    const dirValue = (document.documentElement.dir || 'ltr') as Direction;
+    setDirection(dirValue);
+    // No need for MutationObserver if Dialog remounts or dir is stable during its lifecycle
+  }, []);
+
   return (
     <RadixDialog.Portal>
       <RadixDialog.Overlay asChild>
@@ -116,7 +128,7 @@ export const Dialog = memo(({ children, className, showCloseButton = true, onClo
       <RadixDialog.Content asChild>
         <motion.div
           className={classNames(
-            'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-950 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[520px] focus:outline-none',
+            'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-950 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[90%] max-w-[520px] focus:outline-none', // Responsive width
             className,
           )}
           initial="closed"
@@ -130,7 +142,10 @@ export const Dialog = memo(({ children, className, showCloseButton = true, onClo
               <RadixDialog.Close asChild onClick={onClose}>
                 <IconButton
                   icon="i-ph:x"
-                  className="absolute top-3 right-3 text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary"
+                  className={classNames(
+                    "absolute top-3 text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary",
+                    direction === 'ltr' ? "right-3" : "left-3" // Adjusted for RTL
+                  )}
                 />
               </RadixDialog.Close>
             )}
@@ -208,9 +223,9 @@ export function ConfirmationDialog({
   return (
     <RadixDialog.Root open={isOpen} onOpenChange={onClose}>
       <Dialog showCloseButton={false}>
-        <div className="p-6 bg-white dark:bg-gray-950 relative z-10">
+        <div className="p-4 sm:p-6 bg-white dark:bg-gray-950 relative z-10"> {/* Responsive padding */}
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription className="mb-4">{description}</DialogDescription>
+          <DialogDescription className="mb-2 sm:mb-4">{description}</DialogDescription> {/* Responsive margin */}
           <div className="flex justify-end space-x-2">
             <Button variant="outline" onClick={onClose} disabled={isLoading}>
               {cancelLabel}
@@ -345,7 +360,7 @@ export function SelectionDialog({
       <div
         key={item.id}
         className={classNames(
-          'flex items-start space-x-3 p-2 rounded-md transition-colors',
+          'flex items-start space-x-2 sm:space-x-3 p-1.5 sm:p-2 rounded-md transition-colors', // Responsive space and padding
           selectedItems.includes(item.id)
             ? 'bg-bolt-elements-item-backgroundAccent'
             : 'bg-bolt-elements-bg-depth-2 hover:bg-bolt-elements-item-backgroundActive',
@@ -361,11 +376,11 @@ export function SelectionDialog({
           checked={selectedItems.includes(item.id)}
           onCheckedChange={() => handleToggleItem(item.id)}
         />
-        <div className="grid gap-1.5 leading-none">
+        <div className="grid gap-1 sm:gap-1.5 leading-none"> {/* Responsive gap */}
           <Label
             htmlFor={`item-${item.id}`}
             className={classNames(
-              'text-sm font-medium cursor-pointer',
+              'text-xs sm:text-sm font-medium cursor-pointer', // Responsive font
               selectedItems.includes(item.id)
                 ? 'text-bolt-elements-item-contentAccent'
                 : 'text-bolt-elements-textPrimary',
@@ -373,7 +388,7 @@ export function SelectionDialog({
           >
             {item.label}
           </Label>
-          {item.description && <p className="text-xs text-bolt-elements-textSecondary">{item.description}</p>}
+          {item.description && <p className="text-[10px] sm:text-xs text-bolt-elements-textSecondary">{item.description}</p>} {/* Responsive font */}
         </div>
       </div>
     );
@@ -382,21 +397,21 @@ export function SelectionDialog({
   return (
     <RadixDialog.Root open={isOpen} onOpenChange={onClose}>
       <Dialog showCloseButton={false}>
-        <div className="p-6 bg-white dark:bg-gray-950 relative z-10">
+        <div className="p-4 sm:p-6 bg-white dark:bg-gray-950 relative z-10"> {/* Responsive padding */}
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription className="mt-2 mb-4">
+          <DialogDescription className="mt-1 mb-2 sm:mt-2 sm:mb-4"> {/* Responsive margin */}
             Select the items you want to include and click{' '}
             <span className="text-bolt-elements-item-contentAccent font-medium">{confirmLabel}</span>.
           </DialogDescription>
 
-          <div className="py-4">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium text-bolt-elements-textSecondary">
+          <div className="py-2 sm:py-4"> {/* Responsive padding */}
+            <div className="flex items-center justify-between mb-2 sm:mb-4"> {/* Responsive margin */}
+              <span className="text-xs sm:text-sm font-medium text-bolt-elements-textSecondary"> {/* Responsive font */}
                 {selectedItems.length} of {items.length} selected
               </span>
               <Button
                 variant="ghost"
-                size="sm"
+                size="sm" // size="sm" from Button.tsx is already responsive
                 onClick={handleSelectAll}
                 className="text-xs h-8 px-2 text-bolt-elements-textPrimary hover:text-bolt-elements-item-contentAccent hover:bg-bolt-elements-item-backgroundAccent bg-bolt-elements-bg-depth-2 dark:bg-transparent"
               >
@@ -415,18 +430,18 @@ export function SelectionDialog({
                   height={listHeight}
                   width="100%"
                   itemCount={items.length}
-                  itemSize={60}
+                  itemSize={50} // Reduced item size for smaller screens
                   className="scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-bolt-elements-bg-depth-3"
                 >
                   {ItemRenderer}
                 </FixedSizeList>
               ) : (
-                <div className="text-center py-4 text-sm text-bolt-elements-textTertiary">No items to display</div>
+                <div className="text-center py-4 text-xs sm:text-sm text-bolt-elements-textTertiary">No items to display</div> /* Responsive font */
               )}
             </div>
           </div>
 
-          <div className="flex justify-between mt-6">
+          <div className="flex justify-between mt-4 sm:mt-6"> {/* Responsive margin */}
             <Button
               variant="outline"
               onClick={onClose}

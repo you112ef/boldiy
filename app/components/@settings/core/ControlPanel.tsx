@@ -27,6 +27,9 @@ import BackgroundRays from '~/components/ui/BackgroundRays';
 // Import all tab components
 import ProfileTab from '~/components/@settings/tabs/profile/ProfileTab';
 import SettingsTab from '~/components/@settings/tabs/settings/SettingsTab';
+// ... (other imports remain the same)
+
+type Direction = 'ltr' | 'rtl'; // Add Direction type
 import NotificationsTab from '~/components/@settings/tabs/notifications/NotificationsTab';
 import FeaturesTab from '~/components/@settings/tabs/features/FeaturesTab';
 import { DataTab } from '~/components/@settings/tabs/data/DataTab';
@@ -86,8 +89,11 @@ const TAB_DESCRIPTIONS: Record<TabType, string> = {
 // Beta status for experimental features
 const BETA_TABS = new Set<TabType>(['task-manager', 'service-status', 'update', 'local-providers']);
 
-const BetaLabel = () => (
-  <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-purple-500/10 dark:bg-purple-500/20">
+const BetaLabel = ({ direction }: { direction: Direction }) => ( // Added direction prop
+  <div className={classNames(
+    "absolute top-2 px-1.5 py-0.5 rounded-full bg-purple-500/10 dark:bg-purple-500/20",
+    direction === 'ltr' ? "right-2" : "left-2" // Adjusted for RTL
+  )}>
     <span className="text-[10px] font-medium text-purple-600 dark:text-purple-400">BETA</span>
   </div>
 );
@@ -157,6 +163,17 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
   const [activeTab, setActiveTab] = useState<TabType | null>(null);
   const [loadingTab, setLoadingTab] = useState<TabType | null>(null);
   const [showTabManagement, setShowTabManagement] = useState(false);
+  const [direction, setDirection] = useState<Direction>('ltr'); // Add direction state
+
+  useEffect(() => { // Effect to set direction based on HTML attribute
+    const dirValue = (document.documentElement.dir || 'ltr') as Direction;
+    setDirection(dirValue);
+    const observer = new MutationObserver(() => {
+      setDirection((document.documentElement.dir || 'ltr') as Direction);
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['dir'] });
+    return () => observer.disconnect();
+  }, []);
 
   // Store values
   const tabConfiguration = useStore(tabConfigurationStore);
@@ -432,7 +449,8 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
           >
             <motion.div
               className={classNames(
-                'w-[1200px] h-[90vh]',
+                'w-full sm:w-[calc(100%-4rem)] md:w-[80vw] lg:w-[1200px] max-w-[1200px]', // Responsive width
+                'h-full sm:h-[calc(100%-4rem)] md:h-[90vh]', // Responsive height
                 'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
                 'rounded-2xl shadow-2xl',
                 'border border-[#E5E5E5] dark:border-[#1A1A1A]',
@@ -450,12 +468,13 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
               <div className="relative z-10 flex flex-col h-full">
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center space-x-4">
+                  <div className={classNames("flex items-center", direction === 'ltr' ? "space-x-4" : "space-x-reverse space-x-4")}> {/* Adjusted space for RTL */}
                     {(activeTab || showTabManagement) && (
                       <button
                         onClick={handleBack}
                         className="flex items-center justify-center w-8 h-8 rounded-full bg-transparent hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-all duration-200"
                       >
+                        {/* i-ph:arrow-left will be mirrored by global CSS if html[dir="rtl"] */}
                         <div className="i-ph:arrow-left w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
                       </button>
                     )}
@@ -466,7 +485,10 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
 
                   <div className="flex items-center gap-6">
                     {/* Mode Toggle */}
-                    <div className="flex items-center gap-2 min-w-[140px] border-r border-gray-200 dark:border-gray-800 pr-6">
+                    <div className={classNames(
+                      "flex items-center gap-2 min-w-[140px] border-gray-200 dark:border-gray-800",
+                      direction === 'ltr' ? "border-r pr-6" : "border-l pl-6" // Adjusted border and padding for RTL
+                    )}>
                       <AnimatedSwitch
                         id="developer-mode"
                         checked={developerMode}
@@ -476,7 +498,10 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
                     </div>
 
                     {/* Avatar and Dropdown */}
-                    <div className="border-l border-gray-200 dark:border-gray-800 pl-6">
+                    <div className={classNames(
+                      "border-gray-200 dark:border-gray-800",
+                      direction === 'ltr' ? "border-l pl-6" : "border-r pr-6" // Adjusted border and padding for RTL
+                    )}>
                       <AvatarDropdown onSelectTab={handleTabClick} />
                     </div>
 
@@ -536,7 +561,7 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
                                 isLoading={loadingTab === tab.id}
                                 className="h-full relative"
                               >
-                                {BETA_TABS.has(tab.id) && <BetaLabel />}
+                                {BETA_TABS.has(tab.id) && <BetaLabel direction={direction} />}
                               </TabTile>
                             </motion.div>
                           ))}

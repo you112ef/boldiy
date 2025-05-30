@@ -11,6 +11,7 @@ html,
 body {
   height: 100%;
   width: 100%;
+  overflow-x: hidden;
 }
 
 :root {
@@ -69,4 +70,47 @@ body {
 
   // Firefox support for inverted colors
   scrollbar-color: color-mix(in srgb, var(--bolt-elements-textPrimary), transparent 50%) transparent;
+}
+
+html[dir="rtl"] {
+  // Example: Adjust text alignment for RTL
+  body {
+    text-align: right;
+  }
+  // Add more specific RTL adjustments as needed for global elements
+
+  // Mirror the sidebar toggle icon in RTL
+  .i-ph\:sidebar-simple-duotone {
+    transform: scaleX(-1);
+  }
+
+  // Mirror caret-right icon for RTL (used in FileTree disclosure)
+  .i-ph\:caret-right {
+    transform: scaleX(-1);
+  }
+
+  // Mirror arrow-u-up-left icon for RTL (used in AssistantMessage rewind)
+  .i-ph\:arrow-u-up-left {
+    transform: scaleX(-1);
+  }
+
+  // Mirror arrow-left icon for RTL (used in ControlPanel back button)
+  .i-ph\:arrow-left {
+    transform: scaleX(-1);
+  }
+}
+
+// Small devices (phones, less than 768px)
+@media (max-width: 767.98px) {
+  :root {
+    // Example: Reduce base font size for smaller screens
+    font-size: 14px;
+  }
+}
+
+// Medium devices (tablets, 768px and up)
+@media (min-width: 768px) and (max-width: 991.98px) {
+  :root {
+    font-size: 15px;
+  }
 }

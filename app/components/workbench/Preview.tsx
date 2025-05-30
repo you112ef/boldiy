@@ -55,6 +55,7 @@ export const Preview = memo(() => {
   const [activePreviewIndex, setActivePreviewIndex] = useState(0);
   const [isPortDropdownOpen, setIsPortDropdownOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [direction, setDirection] = useState<"ltr" | "rtl">("ltr"); // Added direction state
   const hasSelectedPreview = useRef(false);
   const previews = useStore(workbenchStore.previews);
   const activePreview = previews[activePreviewIndex];
@@ -88,6 +89,16 @@ export const Preview = memo(() => {
   const [showDeviceFrameInPreview, setShowDeviceFrameInPreview] = useState(false);
   const expoUrl = useStore(expoUrlAtom);
   const [isExpoQrModalOpen, setIsExpoQrModalOpen] = useState(false);
+
+  useEffect(() => {
+    const dirValue = (document.documentElement.dir || 'ltr') as "ltr" | "rtl";
+    setDirection(dirValue);
+    const observer = new MutationObserver(() => {
+      setDirection((document.documentElement.dir || 'ltr') as "ltr" | "rtl");
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['dir'] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!activePreview) {
@@ -179,7 +190,10 @@ export const Preview = memo(() => {
         style={{
           position: 'absolute',
           top: 0,
-          ...(side === 'left' ? { left: 0, marginLeft: '-7px' } : { right: 0, marginRight: '-7px' }),
+          ...( (direction === 'ltr' && side === 'left') || (direction === 'rtl' && side === 'right')
+              ? { left: 0, marginLeft: '-7px' }
+              : { right: 0, marginRight: '-7px' }
+            ),
           width: '15px',
           height: '100%',
           cursor: 'ew-resize',
@@ -714,14 +728,17 @@ export const Preview = memo(() => {
             {isWindowSizeDropdownOpen && (
               <>
                 <div className="fixed inset-0 z-50" onClick={() => setIsWindowSizeDropdownOpen(false)} />
-                <div className="absolute right-0 top-full mt-2 z-50 min-w-[240px] max-h-[400px] overflow-y-auto bg-white dark:bg-black rounded-xl shadow-2xl border border-[#E5E7EB] dark:border-[rgba(255,255,255,0.1)] overflow-hidden">
+                <div className={classNames(
+                  "absolute top-full mt-2 z-50 min-w-[240px] max-h-[400px] overflow-y-auto bg-white dark:bg-black rounded-xl shadow-2xl border border-[#E5E7EB] dark:border-[rgba(255,255,255,0.1)] overflow-hidden",
+                  direction === 'ltr' ? "right-0" : "left-0"
+                )}>
                   <div className="p-3 border-b border-[#E5E7EB] dark:border-[rgba(255,255,255,0.1)]">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-[#111827] dark:text-gray-300">Window Options</span>
                     </div>
                     <div className="flex flex-col gap-2">
                       <button
-                        className={`flex w-full justify-between items-center text-start bg-transparent text-xs text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary`}
+                        className={`flex w-full justify-between items-center bg-transparent text-xs text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary ${direction === 'ltr' ? 'text-start' : 'text-right'}`}
                         onClick={() => {
                           openInNewTab();
                         }}
@@ -730,7 +747,7 @@ export const Preview = memo(() => {
                         <div className="i-ph:arrow-square-out h-5 w-4" />
                       </button>
                       <button
-                        className={`flex w-full justify-between items-center text-start bg-transparent text-xs text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary`}
+                        className={`flex w-full justify-between items-center bg-transparent text-xs text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary ${direction === 'ltr' ? 'text-start' : 'text-right'}`}
                         onClick={() => {
                           if (!activePreview?.baseUrl) {
                             console.warn('[Preview] No active preview available');
@@ -801,7 +818,7 @@ export const Preview = memo(() => {
                   {WINDOW_SIZES.map((size) => (
                     <button
                       key={size.name}
-                      className="w-full px-4 py-3.5 text-left text-[#111827] dark:text-gray-300 text-sm whitespace-nowrap flex items-center gap-3 group hover:bg-[#F5EEFF] dark:hover:bg-gray-900 bg-white dark:bg-black"
+                      className={`w-full px-4 py-3.5 text-[#111827] dark:text-gray-300 text-sm whitespace-nowrap flex items-center gap-3 group hover:bg-[#F5EEFF] dark:hover:bg-gray-900 bg-white dark:bg-black ${direction === 'ltr' ? 'text-left' : 'text-right'}`}
                       onClick={() => {
                         setSelectedWindowSize(size);
                         setIsWindowSizeDropdownOpen(false);

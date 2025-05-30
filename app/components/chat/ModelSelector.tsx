@@ -221,8 +221,8 @@ export const ModelSelector = ({
       <div className="relative flex w-full" onKeyDown={handleProviderKeyDown} ref={providerDropdownRef}>
         <div
           className={classNames(
-            'w-full p-2 rounded-lg border border-bolt-elements-borderColor',
-            'bg-bolt-elements-prompt-background text-bolt-elements-textPrimary',
+            'w-full p-1.5 sm:p-2 rounded-lg border border-bolt-elements-borderColor', // Responsive padding
+            'bg-bolt-elements-prompt-background text-xs sm:text-sm text-bolt-elements-textPrimary', // Responsive font
             'focus-within:outline-none focus-within:ring-2 focus-within:ring-bolt-elements-focus',
             'transition-all cursor-pointer',
             isProviderDropdownOpen ? 'ring-2 ring-bolt-elements-focus' : undefined,
@@ -244,7 +244,7 @@ export const ModelSelector = ({
             <div className="truncate">{provider?.name || 'Select provider'}</div>
             <div
               className={classNames(
-                'i-ph:caret-down w-4 h-4 text-bolt-elements-textSecondary opacity-75',
+                'i-ph:caret-down w-3 h-3 sm:w-4 sm:h-4 text-bolt-elements-textSecondary opacity-75', // Responsive icon size
                 isProviderDropdownOpen ? 'rotate-180' : undefined,
               )}
             />
@@ -266,7 +266,7 @@ export const ModelSelector = ({
                   onChange={(e) => setProviderSearchQuery(e.target.value)}
                   placeholder="Search providers..."
                   className={classNames(
-                    'w-full pl-2 py-1.5 rounded-md text-sm',
+                    'w-full ltr:pl-1.5 rtl:pr-1.5 sm:ltr:pl-2 sm:rtl:pr-2 py-1 text-xs sm:py-1.5 sm:text-sm rounded-md', // Responsive padding & font
                     'bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor',
                     'text-bolt-elements-textPrimary placeholder:text-bolt-elements-textTertiary',
                     'focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus',
@@ -276,7 +276,8 @@ export const ModelSelector = ({
                   role="searchbox"
                   aria-label="Search providers"
                 />
-                <div className="absolute left-2.5 top-1/2 -translate-y-1/2">
+                {/* Adjusted icon positioning for RTL */}
+                <div className="absolute top-1/2 -translate-y-1/2 ltr:left-1.5 rtl:right-1.5 sm:ltr:left-2.5 sm:rtl:right-2.5">
                   <span className="i-ph:magnifying-glass text-bolt-elements-textTertiary" />
                 </div>
               </div>
@@ -284,7 +285,7 @@ export const ModelSelector = ({
 
             <div
               className={classNames(
-                'max-h-60 overflow-y-auto',
+                'max-h-60 overflow-y-auto', // Max height is fine
                 'sm:scrollbar-none',
                 '[&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2',
                 '[&::-webkit-scrollbar-thumb]:bg-bolt-elements-borderColor',
@@ -299,7 +300,7 @@ export const ModelSelector = ({
               )}
             >
               {filteredProviders.length === 0 ? (
-                <div className="px-3 py-2 text-sm text-bolt-elements-textTertiary">No providers found</div>
+                <div className="px-2 py-1.5 text-xs sm:px-3 sm:py-2 sm:text-sm text-bolt-elements-textTertiary">No providers found</div> {/* Responsive padding & font */}
               ) : (
                 filteredProviders.map((providerOption, index) => (
                   <div
@@ -308,7 +309,7 @@ export const ModelSelector = ({
                     role="option"
                     aria-selected={provider?.name === providerOption.name}
                     className={classNames(
-                      'px-3 py-2 text-sm cursor-pointer',
+                      'px-2 py-1.5 text-xs sm:px-3 sm:py-2 sm:text-sm cursor-pointer', // Responsive padding & font
                       'hover:bg-bolt-elements-background-depth-3',
                       'text-bolt-elements-textPrimary',
                       'outline-none',
@@ -348,8 +349,8 @@ export const ModelSelector = ({
       <div className="relative flex w-full min-w-[70%]" onKeyDown={handleModelKeyDown} ref={modelDropdownRef}>
         <div
           className={classNames(
-            'w-full p-2 rounded-lg border border-bolt-elements-borderColor',
-            'bg-bolt-elements-prompt-background text-bolt-elements-textPrimary',
+            'w-full p-1.5 sm:p-2 rounded-lg border border-bolt-elements-borderColor', // Responsive padding
+            'bg-bolt-elements-prompt-background text-xs sm:text-sm text-bolt-elements-textPrimary', // Responsive font
             'focus-within:outline-none focus-within:ring-2 focus-within:ring-bolt-elements-focus',
             'transition-all cursor-pointer',
             isModelDropdownOpen ? 'ring-2 ring-bolt-elements-focus' : undefined,
@@ -371,7 +372,7 @@ export const ModelSelector = ({
             <div className="truncate">{modelList.find((m) => m.name === model)?.label || 'Select model'}</div>
             <div
               className={classNames(
-                'i-ph:caret-down w-4 h-4 text-bolt-elements-textSecondary opacity-75',
+                'i-ph:caret-down w-3 h-3 sm:w-4 sm:h-4 text-bolt-elements-textSecondary opacity-75', // Responsive icon size
                 isModelDropdownOpen ? 'rotate-180' : undefined,
               )}
             />
@@ -393,7 +394,7 @@ export const ModelSelector = ({
                   onChange={(e) => setModelSearchQuery(e.target.value)}
                   placeholder="Search models..."
                   className={classNames(
-                    'w-full pl-2 py-1.5 rounded-md text-sm',
+                    'w-full ltr:pl-1.5 rtl:pr-1.5 sm:ltr:pl-2 sm:rtl:pr-2 py-1 text-xs sm:py-1.5 sm:text-sm rounded-md', // Responsive padding & font
                     'bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor',
                     'text-bolt-elements-textPrimary placeholder:text-bolt-elements-textTertiary',
                     'focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus',
@@ -403,7 +404,8 @@ export const ModelSelector = ({
                   role="searchbox"
                   aria-label="Search models"
                 />
-                <div className="absolute left-2.5 top-1/2 -translate-y-1/2">
+                 {/* Adjusted icon positioning for RTL */}
+                <div className="absolute top-1/2 -translate-y-1/2 ltr:left-1.5 rtl:right-1.5 sm:ltr:left-2.5 sm:rtl:right-2.5">
                   <span className="i-ph:magnifying-glass text-bolt-elements-textTertiary" />
                 </div>
               </div>
@@ -411,7 +413,7 @@ export const ModelSelector = ({
 
             <div
               className={classNames(
-                'max-h-60 overflow-y-auto',
+                'max-h-60 overflow-y-auto', // Max height is fine
                 'sm:scrollbar-none',
                 '[&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2',
                 '[&::-webkit-scrollbar-thumb]:bg-bolt-elements-borderColor',
@@ -426,9 +428,9 @@ export const ModelSelector = ({
               )}
             >
               {modelLoading === 'all' || modelLoading === provider?.name ? (
-                <div className="px-3 py-2 text-sm text-bolt-elements-textTertiary">Loading...</div>
+                <div className="px-2 py-1.5 text-xs sm:px-3 sm:py-2 sm:text-sm text-bolt-elements-textTertiary">Loading...</div> /* Responsive padding & font */
               ) : filteredModels.length === 0 ? (
-                <div className="px-3 py-2 text-sm text-bolt-elements-textTertiary">No models found</div>
+                <div className="px-2 py-1.5 text-xs sm:px-3 sm:py-2 sm:text-sm text-bolt-elements-textTertiary">No models found</div> /* Responsive padding & font */
               ) : (
                 filteredModels.map((modelOption, index) => (
                   <div
@@ -437,7 +439,7 @@ export const ModelSelector = ({
                     role="option"
                     aria-selected={model === modelOption.name}
                     className={classNames(
-                      'px-3 py-2 text-sm cursor-pointer',
+                      'px-2 py-1.5 text-xs sm:px-3 sm:py-2 sm:text-sm cursor-pointer', // Responsive padding & font
                       'hover:bg-bolt-elements-background-depth-3',
                       'text-bolt-elements-textPrimary',
                       'outline-none',

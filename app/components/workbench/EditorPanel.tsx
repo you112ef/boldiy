@@ -84,11 +84,15 @@ export const EditorPanel = memo(
       <PanelGroup direction="vertical">
         <Panel defaultSize={showTerminal ? DEFAULT_EDITOR_SIZE : 100} minSize={20}>
           <PanelGroup direction="horizontal">
-            <Panel defaultSize={20} minSize={15} collapsible className="border-r border-bolt-elements-borderColor">
+            {/* Ensure Panel order is correct for LTR/RTL or that react-resizable-panels handles it via dir attribute */}
+            {/* The border should be on the separating edge: right for LTR, left for RTL */}
+            <Panel defaultSize={20} minSize={15} collapsible className="ltr:border-r rtl:border-l border-bolt-elements-borderColor">
               <div className="h-full">
                 <Tabs.Root defaultValue="files" className="flex flex-col h-full">
+                  {/* px-1 is fine as it's symmetrical */}
                   <PanelHeader className="w-full text-sm font-medium text-bolt-elements-textSecondary px-1">
                     <div className="h-full flex-shrink-0 flex items-center justify-between w-full">
+                      {/* Radix Tabs.List should handle LTR/RTL alignment based on parent dir */}
                       <Tabs.List className="h-full flex-shrink-0 flex items-center">
                         <Tabs.Trigger
                           value="files"
@@ -149,7 +153,9 @@ export const EditorPanel = memo(
                   <div className="flex items-center flex-1 text-sm">
                     <FileBreadcrumb pathSegments={activeFileSegments} files={files} onFileSelect={onFileSelect} />
                     {activeFileUnsaved && (
-                      <div className="flex gap-1 ml-auto -mr-1.5">
+                      // ml-auto pushes to the end (left in RTL, right in LTR)
+                      // margin on the container itself needs to be LTR/RTL specific
+                      <div className="flex gap-1 ml-auto ltr:-mr-1.5 rtl:-ml-1.5">
                         <PanelHeaderButton onClick={onFileSave}>
                           <div className="i-ph:floppy-disk-duotone" />
                           Save

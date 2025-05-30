@@ -87,6 +87,18 @@ const FileModifiedDropdown = memo(
       return modifiedFiles.filter(([filePath]) => filePath.toLowerCase().includes(searchQuery.toLowerCase()));
     }, [modifiedFiles, searchQuery]);
 
+    const [direction, setDirection] = useState('ltr');
+
+    useEffect(() => {
+      const dir = document.documentElement.dir || 'ltr';
+      setDirection(dir);
+      const observer = new MutationObserver(() => {
+        setDirection(document.documentElement.dir || 'ltr');
+      });
+      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['dir'] });
+      return () => observer.disconnect();
+    }, []);
+
     return (
       <div className="flex items-center gap-2">
         <Popover className="relative">
@@ -109,7 +121,12 @@ const FileModifiedDropdown = memo(
                 leaveFrom="transform scale-100 opacity-100"
                 leaveTo="transform scale-95 opacity-0"
               >
-                <Popover.Panel className="absolute right-0 z-20 mt-2 w-80 origin-top-right rounded-xl bg-bolt-elements-background-depth-2 shadow-xl border border-bolt-elements-borderColor">
+                <Popover.Panel
+                  className={classNames(
+                    "absolute z-20 mt-2 w-80 rounded-xl bg-bolt-elements-background-depth-2 shadow-xl border border-bolt-elements-borderColor",
+                    direction === 'ltr' ? "right-0 origin-top-right" : "left-0 origin-top-left"
+                  )}
+                >
                   <div className="p-2">
                     <div className="relative mx-2 mb-2">
                       <input
@@ -117,9 +134,9 @@ const FileModifiedDropdown = memo(
                         placeholder="Search files..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="w-full ltr:pl-8 rtl:pr-8 px-3 py-1.5 text-sm rounded-lg bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       />
-                      <div className="absolute left-2 top-1/2 -translate-y-1/2 text-bolt-elements-textTertiary">
+                      <div className="absolute top-1/2 -translate-y-1/2 text-bolt-elements-textTertiary ltr:left-2 rtl:right-2">
                         <div className="i-ph:magnifying-glass" />
                       </div>
                     </div>
@@ -134,7 +151,7 @@ const FileModifiedDropdown = memo(
                             <button
                               key={filePath}
                               onClick={() => onSelectFile(filePath)}
-                              className="w-full px-3 py-2 text-left rounded-md hover:bg-bolt-elements-background-depth-1 transition-colors group bg-transparent"
+                              className="w-full px-3 py-2 ltr:text-left rtl:text-right rounded-md hover:bg-bolt-elements-background-depth-1 transition-colors group bg-transparent"
                             >
                               <div className="flex items-center gap-2">
                                 <div className="shrink-0 w-5 h-5 text-bolt-elements-textTertiary">
@@ -370,12 +387,14 @@ export const Workbench = memo(
         >
           <div
             className={classNames(
-              'fixed top-[calc(var(--header-height)+1.5rem)] bottom-6 w-[var(--workbench-inner-width)] mr-4 z-0 transition-[left,width] duration-200 bolt-ease-cubic-bezier',
+              'fixed top-[calc(var(--header-height)+1.5rem)] bottom-6 w-[var(--workbench-inner-width)] z-0 transition-[left,right,width] duration-200 bolt-ease-cubic-bezier',
+              'ltr:mr-4 rtl:ml-4', // RTL margin
               {
                 'w-full': isSmallViewport,
-                'left-0': showWorkbench && isSmallViewport,
-                'left-[var(--workbench-left)]': showWorkbench,
-                'left-[100%]': !showWorkbench,
+                'ltr:left-0 rtl:right-auto': showWorkbench && isSmallViewport, // Ensure right is auto for RTL small
+                'rtl:right-0 ltr:left-auto': showWorkbench && isSmallViewport, // Ensure left is auto for LTR small
+                'ltr:left-[var(--workbench-left)] rtl:right-[var(--workbench-left)]': showWorkbench && !isSmallViewport, // Adjusted for RTL
+                'ltr:left-[100%] rtl:right-[100%]': !showWorkbench && !isSmallViewport, // Adjusted for RTL
               },
             )}
           >
@@ -383,11 +402,11 @@ export const Workbench = memo(
               <div className="h-full flex flex-col bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor shadow-sm rounded-lg overflow-hidden">
                 <div className="flex items-center px-3 py-2 border-b border-bolt-elements-borderColor gap-1">
                   <Slider selected={selectedView} options={sliderOptions} setSelected={setSelectedView} />
-                  <div className="ml-auto" />
+                  <div className="ml-auto" /> {/* This correctly pushes items to the end in LTR/RTL */}
                   {selectedView === 'code' && (
                     <div className="flex overflow-y-auto">
                       <PanelHeaderButton
-                        className="mr-1 text-sm"
+                        className="ltr:mr-1 rtl:ml-1 text-sm" // RTL margin
                         onClick={() => {
                           workbenchStore.toggleTerminal(!workbenchStore.showTerminal.get());
                         }}
@@ -410,7 +429,7 @@ export const Workbench = memo(
                             'py-1',
                           )}
                           sideOffset={5}
-                          align="end"
+                          align="end" // Should work for RTL, aligns to start edge of trigger
                         >
                           <DropdownMenu.Item
                             className={classNames(
@@ -458,7 +477,7 @@ export const Workbench = memo(
                   )}
                   <IconButton
                     icon="i-ph:x-circle"
-                    className="-mr-1"
+                    className="ltr:-mr-1 rtl:-ml-1" // RTL margin
                     size="xl"
                     onClick={() => {
                       workbenchStore.showWorkbench.set(false);
@@ -466,6 +485,7 @@ export const Workbench = memo(
                   />
                 </div>
                 <div className="relative flex-1 overflow-hidden">
+                  {/* Views use x transform, which is direction-agnostic */}
                   <View initial={{ x: '0%' }} animate={{ x: selectedView === 'code' ? '0%' : '-100%' }}>
                     <EditorPanel
                       editorDocument={currentDocument}

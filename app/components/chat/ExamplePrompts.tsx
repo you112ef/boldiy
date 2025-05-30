@@ -11,9 +11,9 @@ const EXAMPLE_PROMPTS = [
 
 export function ExamplePrompts(sendMessage?: { (event: React.UIEvent, messageInput?: string): void | undefined }) {
   return (
-    <div id="examples" className="relative flex flex-col gap-9 w-full max-w-3xl mx-auto flex justify-center mt-6">
+    <div id="examples" className="relative flex flex-col gap-4 sm:gap-9 w-full max-w-3xl mx-auto flex justify-center mt-4 sm:mt-6 px-2"> {/* Responsive gap, margin, padding */}
       <div
-        className="flex flex-wrap justify-center gap-2"
+        className="flex flex-wrap justify-center gap-1.5 sm:gap-2" // Responsive gap
         style={{
           animation: '.25s ease-out 0s 1 _fade-and-move-in_g2ptj_1 forwards',
         }}

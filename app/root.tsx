@@ -1,8 +1,9 @@
 import { useStore } from '@nanostores/react';
 import type { LinksFunction } from '@remix-run/cloudflare';
-import { Links, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from '@remix-run/react';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { themeStore } from './lib/stores/theme';
+import { useSettings } from './lib/hooks/useSettings'; // Added import
 import { stripIndents } from './utils/stripIndent';
 import { createHead } from 'remix-island';
 import { useEffect } from 'react';
@@ -42,16 +43,47 @@ export const links: LinksFunction = () => [
 ];
 
 const inlineThemeCode = stripIndents`
-  setTutorialKitTheme();
+  setGlobalHtmlAttributes();
 
-  function setTutorialKitTheme() {
+  function getCookie(name) {
+    const value = "; " + document.cookie;
+    const parts = value.split("; " + name + "=");
+    if (parts.length === 2) return parts.pop().split(";").shift();
+  }
+
+  function setGlobalHtmlAttributes() {
+    // Theme
     let theme = localStorage.getItem('bolt_theme');
-
     if (!theme) {
       theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
+    document.documentElement.setAttribute('data-theme', theme);
 
-    document.querySelector('html')?.setAttribute('data-theme', theme);
+    // Language and Direction
+    // Try reading from 'settings' in localStorage first, then 'bolt_language' cookie
+    let lang = 'en'; // Default language
+    try {
+      const settingsStr = localStorage.getItem('settings');
+      if (settingsStr) {
+        const settings = JSON.parse(settingsStr);
+        if (settings && settings.language) {
+          lang = settings.language;
+        }
+      } else {
+        const langCookie = getCookie('bolt_language');
+        if (langCookie) {
+          lang = langCookie;
+        }
+      }
+    } catch (e) {
+      // Fallback to default if localStorage or cookie parsing fails
+      console.warn('Could not parse language settings, defaulting to "en".', e);
+      lang = 'en';
+    }
+
+    const dir = lang === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.setAttribute('lang', lang);
+    document.documentElement.setAttribute('dir', dir);
   }
 `;
 
@@ -67,10 +99,27 @@ export const Head = createHead(() => (
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const theme = useStore(themeStore);
+  // useSettings will still be used to reflect changes and potentially for other settings
+  const { settings } = useSettings();
+  const lang = settings.language || 'en';
+  const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   useEffect(() => {
-    document.querySelector('html')?.setAttribute('data-theme', theme);
-  }, [theme]);
+    // This effect will now primarily react to changes from useSettings
+    // and ensure consistency if settings are updated after initial load.
+    const htmlElement = document.documentElement;
+    if (htmlElement) {
+      if (htmlElement.getAttribute('data-theme') !== theme) {
+        htmlElement.setAttribute('data-theme', theme);
+      }
+      if (htmlElement.getAttribute('lang') !== lang) {
+        htmlElement.setAttribute('lang', lang);
+      }
+      if (htmlElement.getAttribute('dir') !== dir) {
+        htmlElement.setAttribute('dir', dir);
+      }
+    }
+  }, [theme, lang, dir]);
 
   return (
     <>

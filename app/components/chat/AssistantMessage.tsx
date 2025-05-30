@@ -21,6 +21,8 @@ interface AssistantMessageProps {
   provider?: ProviderInfo;
 }
 
+type Direction = 'ltr' | 'rtl';
+
 function openArtifactInWorkbench(filePath: string) {
   filePath = normalizedFilePath(filePath);
 
@@ -58,6 +60,17 @@ export const AssistantMessage = memo(
     model,
     provider,
   }: AssistantMessageProps) => {
+    const [direction, setDirection] = useState<Direction>('ltr');
+    useEffect(() => {
+      const dirValue = (document.documentElement.dir || 'ltr') as Direction;
+      setDirection(dirValue);
+      const observer = new MutationObserver(() => {
+        setDirection((document.documentElement.dir || 'ltr') as Direction);
+      });
+      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['dir'] });
+      return () => observer.disconnect();
+    }, []);
+
     const filteredAnnotations = (annotations?.filter(
       (annotation: JSONValue) =>
         annotation && typeof annotation === 'object' && Object.keys(annotation).includes('type'),
@@ -86,7 +99,11 @@ export const AssistantMessage = memo(
         <>
           <div className=" flex gap-2 items-center text-sm text-bolt-elements-textSecondary mb-2">
             {(codeContext || chatSummary) && (
-              <Popover side="right" align="start" trigger={<div className="i-ph:info" />}>
+              <Popover
+                side={direction === 'ltr' ? 'right' : 'left'}
+                align={direction === 'ltr' ? 'start' : 'end'}
+                trigger={<div className="i-ph:info" />}
+              >
                 {chatSummary && (
                   <div className="max-w-chat">
                     <div className="summary max-h-96 flex flex-col">

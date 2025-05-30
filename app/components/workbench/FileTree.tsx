@@ -34,7 +34,10 @@ interface InlineInputProps {
   initialValue?: string;
   onSubmit: (value: string) => void;
   onCancel: () => void;
+  direction: Direction; // Added direction
 }
+
+type Direction = 'ltr' | 'rtl';
 
 export const FileTree = memo(
   ({
@@ -51,6 +54,17 @@ export const FileTree = memo(
     fileHistory = {},
   }: Props) => {
     renderLogger.trace('FileTree');
+
+    const [direction, setDirection] = useState<Direction>('ltr');
+    useEffect(() => {
+      const dirValue = document.documentElement.dir || 'ltr';
+      setDirection(dirValue as Direction);
+      const observer = new MutationObserver(() => {
+        setDirection((document.documentElement.dir || 'ltr') as Direction);
+      });
+      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['dir'] });
+      return () => observer.disconnect();
+    }, []);
 
     const computedHiddenFiles = useMemo(() => [...DEFAULT_HIDDEN_FILES, ...(hiddenFiles ?? [])], [hiddenFiles]);
 
@@ -152,6 +166,7 @@ export const FileTree = memo(
                   key={fileOrFolder.id}
                   selected={selectedFile === fileOrFolder.fullPath}
                   file={fileOrFolder}
+                  direction={direction} // Pass direction
                   unsavedChanges={unsavedFiles instanceof Set && unsavedFiles.has(fileOrFolder.fullPath)}
                   fileHistory={fileHistory}
                   onCopyPath={() => {
@@ -171,6 +186,7 @@ export const FileTree = memo(
                 <Folder
                   key={fileOrFolder.id}
                   folder={fileOrFolder}
+                  direction={direction} // Pass direction
                   selected={allowFolderSelection && selectedFile === fileOrFolder.fullPath}
                   collapsed={collapsedFolders.has(fileOrFolder.fullPath)}
                   onCopyPath={() => {
@@ -204,12 +220,14 @@ interface FolderProps {
   onCopyPath: () => void;
   onCopyRelativePath: () => void;
   onClick: () => void;
+  direction: Direction; // Added direction
 }
 
 interface FolderContextMenuProps {
   onCopyPath?: () => void;
   onCopyRelativePath?: () => void;
   children: ReactNode;
+  direction: Direction; // Added direction
 }
 
 function ContextMenuItem({ onSelect, children }: { onSelect?: () => void; children: ReactNode }) {
@@ -226,6 +244,10 @@ function ContextMenuItem({ onSelect, children }: { onSelect?: () => void; childr
 
 function InlineInput({ depth, placeholder, initialValue = '', onSubmit, onCancel }: InlineInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  // direction prop is now available in InlineInputProps
+  const style = direction === 'ltr'
+    ? { paddingLeft: `${6 + depth * NODE_PADDING_LEFT}px` }
+    : { paddingRight: `${6 + depth * NODE_PADDING_LEFT}px` };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -257,13 +279,16 @@ function InlineInput({ depth, placeholder, initialValue = '', onSubmit, onCancel
   return (
     <div
       className="flex items-center w-full px-2 bg-bolt-elements-background-depth-4 border border-bolt-elements-item-contentAccent py-0.5 text-bolt-elements-textPrimary"
-      style={{ paddingLeft: `${6 + depth * NODE_PADDING_LEFT}px` }}
+      style={style} // Apply LTR/RTL padding
     >
       <div className="scale-120 shrink-0 i-ph:file-plus text-bolt-elements-textTertiary" />
       <input
         ref={inputRef}
         type="text"
-        className="ml-2 flex-1 bg-transparent border-none outline-none py-0.5 text-sm text-bolt-elements-textPrimary placeholder:text-bolt-elements-textTertiary min-w-0"
+        className={classNames(
+          "flex-1 bg-transparent border-none outline-none py-0.5 text-sm text-bolt-elements-textPrimary placeholder:text-bolt-elements-textTertiary min-w-0",
+          direction === 'ltr' ? "ml-2" : "mr-2" // Adjusted margin for LTR/RTL
+        )}
         placeholder={placeholder}
         onKeyDown={handleKeyDown}
         onBlur={() => {
@@ -283,7 +308,8 @@ function FileContextMenu({
   onCopyRelativePath,
   fullPath,
   children,
-}: FolderContextMenuProps & { fullPath: string }) {
+  direction, // Consumed direction
+}: FolderContextMenuProps & { fullPath: string; direction: Direction }) {
   const [isCreatingFile, setIsCreatingFile] = useState(false);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -573,6 +599,7 @@ function FileContextMenu({
           placeholder="Enter file name..."
           onSubmit={handleCreateFile}
           onCancel={() => setIsCreatingFile(false)}
+          direction={direction} // Pass direction
         />
       )}
       {isCreatingFolder && (
@@ -581,6 +608,7 @@ function FileContextMenu({
           placeholder="Enter folder name..."
           onSubmit={handleCreateFolder}
           onCancel={() => setIsCreatingFolder(false)}
+          direction={direction} // Pass direction
         />
       )}
     </>
@@ -628,6 +656,7 @@ interface FileProps {
   onCopyPath: () => void;
   onCopyRelativePath: () => void;
   onClick: () => void;
+  direction: Direction; // Added direction
 }
 
 function File({
@@ -638,6 +667,7 @@ function File({
   selected,
   unsavedChanges = false,
   fileHistory = {},
+  direction, // Consumed direction
 }: FileProps) {
   const { depth, name, fullPath } = file;
 
@@ -730,20 +760,27 @@ interface ButtonProps {
   children: ReactNode;
   className?: string;
   onClick?: () => void;
+  direction: Direction; // Added direction
 }
 
-function NodeButton({ depth, iconClasses, onClick, className, children }: ButtonProps) {
+function NodeButton({ depth, iconClasses, onClick, className, children, direction }: ButtonProps) {
+  const style = direction === 'ltr'
+    ? { paddingLeft: `${6 + depth * NODE_PADDING_LEFT}px` }
+    : { paddingRight: `${6 + depth * NODE_PADDING_LEFT}px` };
+
   return (
     <button
       className={classNames(
-        'flex items-center gap-1.5 w-full pr-2 border-2 border-transparent text-faded py-0.5',
+        'flex items-center gap-1.5 w-full border-2 border-transparent text-faded py-0.5',
+        direction === 'ltr' ? 'pr-2' : 'pl-2', // Padding on the end side for the content within button
         className,
       )}
-      style={{ paddingLeft: `${6 + depth * NODE_PADDING_LEFT}px` }}
+      style={style} // Apply LTR/RTL padding for indentation
       onClick={() => onClick?.()}
     >
       <div className={classNames('scale-120 shrink-0', iconClasses)}></div>
-      <div className="truncate w-full text-left">{children}</div>
+      {/* Text alignment for children (file/folder name) */}
+      <div className={classNames("truncate w-full", direction === 'ltr' ? 'text-left' : 'text-right')}>{children}</div>
     </button>
   );
 }
