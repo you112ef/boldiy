@@ -300,7 +300,7 @@ export const ModelSelector = ({
               )}
             >
               {filteredProviders.length === 0 ? (
-                <div className="px-2 py-1.5 text-xs sm:px-3 sm:py-2 sm:text-sm text-bolt-elements-textTertiary">No providers found</div> {/* Responsive padding & font */}
+                <div className="px-2 py-1.5 text-xs sm:px-3 sm:py-2 sm:text-sm text-bolt-elements-textTertiary">No providers found</div>
               ) : (
                 filteredProviders.map((providerOption, index) => (
                   <div

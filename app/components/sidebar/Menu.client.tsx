@@ -1,9 +1,10 @@
 import { motion, type Variants } from 'framer-motion';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'; // Added lazy and Suspense
 import { toast } from 'react-toastify';
 import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
-import { ControlPanel } from '~/components/@settings/core/ControlPanel';
+// import { ControlPanel } from '~/components/@settings/core/ControlPanel'; // Removed static import
+const ControlPanel = lazy(() => import('~/components/@settings/core/ControlPanel').then(module => ({ default: module.ControlPanel }))); // Added lazy import
 import { SettingsButton } from '~/components/ui/SettingsButton';
 import { Button } from '~/components/ui/Button';
 import { db, deleteById, getAll, chatId, type ChatHistoryItem, useChatHistory } from '~/lib/persistence';
@@ -537,7 +538,9 @@ export const Menu = () => {
         </div>
       </motion.div>
 
-      <ControlPanel open={isSettingsOpen} onClose={handleSettingsClose} />
+      <Suspense fallback={null}>
+        {isSettingsOpen && <ControlPanel open={isSettingsOpen} onClose={handleSettingsClose} />}
+      </Suspense>
     </>
   );
 };

@@ -1,14 +1,15 @@
 import { useStore } from '@nanostores/react';
 import { motion, type HTMLMotionProps, type Variants } from 'framer-motion';
 import { computed } from 'nanostores';
-import { memo, useCallback, useEffect, useState, useMemo } from 'react';
+import { memo, useCallback, useEffect, useState, useMemo, lazy, Suspense } from 'react'; // Added lazy, Suspense
 import { toast } from 'react-toastify';
 import { Popover, Transition } from '@headlessui/react';
 import { diffLines, type Change } from 'diff';
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
 import type { FileHistory } from '~/types/actions';
-import { DiffView } from './DiffView';
+// import { DiffView } from './DiffView'; // Removed static import
+const DiffView = lazy(() => import('./DiffView').then(module => ({ default: module.DiffView }))); // Added lazy import
 import {
   type OnChangeCallback as OnEditorChange,
   type OnScrollCallback as OnEditorScroll,
@@ -23,7 +24,8 @@ import { renderLogger } from '~/utils/logger';
 import { EditorPanel } from './EditorPanel';
 import { Preview } from './Preview';
 import useViewport from '~/lib/hooks';
-import { PushToGitHubDialog } from '~/components/@settings/tabs/connections/components/PushToGitHubDialog';
+// import { PushToGitHubDialog } from '~/components/@settings/tabs/connections/components/PushToGitHubDialog'; // Removed static import
+const PushToGitHubDialog = lazy(() => import('~/components/@settings/tabs/connections/components/PushToGitHubDialog').then(module => ({ default: module.PushToGitHubDialog }))); // Added lazy import
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { usePreviewStore } from '~/lib/stores/previews';
 
@@ -505,7 +507,9 @@ export const Workbench = memo(
                     initial={{ x: '100%' }}
                     animate={{ x: selectedView === 'diff' ? '0%' : selectedView === 'code' ? '100%' : '-100%' }}
                   >
-                    <DiffView fileHistory={fileHistory} setFileHistory={setFileHistory} actionRunner={actionRunner} />
+                    <Suspense fallback={<div className="p-4 text-center text-bolt-elements-textTertiary">Loading Diff...</div>}>
+                      <DiffView fileHistory={fileHistory} setFileHistory={setFileHistory} actionRunner={actionRunner} />
+                    </Suspense>
                   </View>
                   <View initial={{ x: '100%' }} animate={{ x: selectedView === 'preview' ? '0%' : '100%' }}>
                     <Preview />
@@ -514,31 +518,35 @@ export const Workbench = memo(
               </div>
             </div>
           </div>
-          <PushToGitHubDialog
-            isOpen={isPushDialogOpen}
-            onClose={() => setIsPushDialogOpen(false)}
-            onPush={async (repoName, username, token, isPrivate) => {
-              try {
-                console.log('Dialog onPush called with isPrivate =', isPrivate);
+          <Suspense fallback={null}>
+            {isPushDialogOpen && (
+              <PushToGitHubDialog
+                isOpen={isPushDialogOpen}
+                onClose={() => setIsPushDialogOpen(false)}
+                onPush={async (repoName, username, token, isPrivate) => {
+                  try {
+                    console.log('Dialog onPush called with isPrivate =', isPrivate);
 
-                const commitMessage = prompt('Please enter a commit message:', 'Initial commit') || 'Initial commit';
-                const repoUrl = await workbenchStore.pushToGitHub(repoName, commitMessage, username, token, isPrivate);
+                    const commitMessage = prompt('Please enter a commit message:', 'Initial commit') || 'Initial commit';
+                    const repoUrl = await workbenchStore.pushToGitHub(repoName, commitMessage, username, token, isPrivate);
 
-                if (updateChatMestaData && !metadata?.gitUrl) {
-                  updateChatMestaData({
-                    ...(metadata || {}),
-                    gitUrl: repoUrl,
-                  });
-                }
+                    if (updateChatMestaData && !metadata?.gitUrl) {
+                      updateChatMestaData({
+                        ...(metadata || {}),
+                        gitUrl: repoUrl,
+                      });
+                    }
 
-                return repoUrl;
-              } catch (error) {
-                console.error('Error pushing to GitHub:', error);
-                toast.error('Failed to push to GitHub');
-                throw error;
-              }
-            }}
-          />
+                    return repoUrl;
+                  } catch (error) {
+                    console.error('Error pushing to GitHub:', error);
+                    toast.error('Failed to push to GitHub');
+                    throw error;
+                  }
+                }}
+              />
+            )}
+          </Suspense>
         </motion.div>
       )
     );
