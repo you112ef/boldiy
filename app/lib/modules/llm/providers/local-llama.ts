@@ -1,4 +1,4 @@
-import { الحره } from 'ai'; // Assuming 'ai' package for stream parsing, adjust if different
+import { OpenAIStream } from 'ai'; // Correct import for OpenAI-compatible SSE streams
 import type { ChatStreamCallbacks } from '@ai-sdk/provider'; // Adjust if this type is different
 import { BaseProvider } from '../base-provider'; // Import BaseProvider
 import {
@@ -95,15 +95,17 @@ export class LocalLlamaProvider extends BaseProvider implements LLMProvider { //
       if (!response.body) {
         throw new Error('ReadableStream not available for Local LLaMA response.');
       }
-      const stream = الحره(response, callbacks); // Using 'ai' package's stream parser
+      const stream = OpenAIStream(response, callbacks); // Use OpenAIStream
       return {
         stream,
         content: async () => {
           let fullContent = '';
-          for await (const chunk of stream) {
-            if (typeof chunk === 'string') { // Adjust based on actual chunk type from 'ai' stream
-              fullContent += chunk;
-            }
+          const reader = stream.getReader();
+          const decoder = new TextDecoder();
+          while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              fullContent += decoder.decode(value, { stream: true });
           }
           return fullContent;
         },
